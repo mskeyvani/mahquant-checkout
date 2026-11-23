@@ -72,6 +72,17 @@
 /* ========= SET THESE TWO LINES ========= */
 var CENTRAL_URL = 'https://script.google.com/macros/s/AKfycbynJnR9H8OrxL91GULltjK860MrstJ6ZRZQOsujU4WdD0dp2sQ4OBPNA8h8Bzpod-Yg/exec';   // the /exec address of the central license + payments project
 var SUPPORT = 'mahquant.com';
+  // تشخیص هوشمند زبان بر اساس سایتی که کاربر از آن آمده است
+const referrer = document.referrer.toLowerCase();
+const isPersian = referrer.includes('mahquant-trading-system-fa') || referrer.includes('/fa/');
+
+const TERMS_URL = isPersian 
+  ? 'https://sites.google.com/view/mahquant-trading-system-fa/%D8%AE%D8%B1%DB%8C%D8%AF-%D9%85%D8%AD%D8%B5%D9%88%D9%84/%D9%82%D9%88%D8%A7%D9%86%DB%8C%D9%86-%D9%88-%D8%B4%D8%B1%D8%A7%DB%8C%D8%B7' 
+  : 'https://www.mahquant.com/purchase/terms-of-service';
+
+const RISK_URL = isPersian 
+  ? 'https://sites.google.com/view/mahquant-trading-system-fa/%D8%AE%D8%B1%DB%8C%D8%AF-%D9%85%D8%AD%D8%B5%D9%88%D9%84/%D8%A7%D9%81%D8%B4%D8%A7%DB%8C-%D8%B1%DB%8C%D8%B3%DA%A9' 
+  : 'https://www.mahquant.com/purchase/risk-disclosure';
 /* ======================================= */
 var PRODUCTS = { mahquant: 'MAHQuant BTC DCA', whalesonar: 'MAHQuant Whale Sonar' };
 var PLAN_NAMES = { monthly: 'Monthly / ماهانه', quarterly: '3 months / سه ماهه', half: '6 months / شش ماهه', yearly: 'Yearly / سالانه' };
