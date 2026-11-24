@@ -51,16 +51,18 @@
   </div>
 
   <div class="card" id="step2" hidden>
-    <div>Send EXACTLY this amount / دقیقاً این مبلغ را بفرستید:</div>
-    <div class="row"><div class="big" id="amt"></div><button class="alt" id="copyAmt">Copy / کپی</button></div>
-    <div style="margin-top:10px">USDT on <b id="netname"></b> to this address / به این آدرس:</div>
-    <div class="row"><div class="mono" id="addr"></div><button class="alt" id="copyAddr">Copy / کپی</button></div>
-    <p class="warn">
-      • Send only USDT on the selected network; anything else is lost. / فقط USDT روی همین شبکه؛ غیر از آن از دست می‌رود.<br>
-      • The amount must be exact. If your exchange deducts a withdrawal fee, add it so the wallet receives exactly this amount. / مبلغ باید دقیق باشد؛ اگر صرافی کارمزد برداشت کم می‌کند، آن را اضافه کنید.<br>
-      • Invoice valid for / مهلت فاکتور: <b id="left"></b>
-    </p>
-    <button id="paid">I have paid / پرداخت کردم</button>
+    <div id="payblock">
+      <div>Send EXACTLY this amount / دقیقاً این مبلغ را بفرستید:</div>
+      <div class="row"><div class="big" id="amt"></div><button class="alt" id="copyAmt">Copy / کپی</button></div>
+      <div style="margin-top:10px">USDT on <b id="netname"></b> to this address / به این آدرس:</div>
+      <div class="row"><div class="mono" id="addr"></div><button class="alt" id="copyAddr">Copy / کپی</button></div>
+      <p class="warn">
+        • Send only USDT on the selected network; anything else is lost. / فقط USDT روی همین شبکه؛ غیر از آن از دست می‌رود.<br>
+        • The amount must be exact. If your exchange deducts a withdrawal fee, add it so the wallet receives exactly this amount. / مبلغ باید دقیق باشد؛ اگر صرافی کارمزد برداشت کم می‌کند، آن را اضافه کنید.<br>
+        • Invoice valid for / مهلت فاکتور: <b id="left"></b>
+      </p>
+      <button id="paid">I have paid / پرداخت کردم</button>
+    </div>
     <div id="status" style="margin-top:12px"></div>
     <div class="small" id="inv" style="margin-top:8px"></div>
   </div>
@@ -90,7 +92,7 @@ var RISK_URL = isPersian
   : 'https://www.mahquant.com/purchase/risk-disclosure';
 /* ======================================= */
 var PRODUCTS = { mahquant: 'MAHQuant BTC DCA', whalesonar: 'MAHQuant Whale Sonar' };
-var PLAN_NAMES = { monthly: 'Monthly / ماهانه', quarterly: '3 months / سه ماهه', half: '6 months / شش ماهه', yearly: 'Yearly / سالانه' };
+var PLAN_NAMES = { trial: 'Free trial / آزمایش رایگان', monthly: 'Monthly / ماهانه', quarterly: '3 months / سه ماهه', half: '6 months / شش ماهه', yearly: 'Yearly / سالانه' };
 var order = null, pollTimer = null, tickTimer = null, expiresMs = 0;
 function $(id) { return document.getElementById(id); }
 function qs(name) { var m = new RegExp('[?&]' + name + '=([^&]*)').exec(location.search); return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : ''; }
@@ -107,9 +109,17 @@ function call(params, ok, fail) {
   t = setTimeout(function () { if (!done) { cleanup(); fail('timeout'); } }, 30000);
   document.head.appendChild(s);
 }
-function msg(e) { return { 'invalid e-mail': 'Invalid e-mail / ایمیل نامعتبر', 'unknown product or plan': 'Unknown plan / پلن نامعتبر', 'invalid network': 'Invalid network / شبکه نامعتبر',
-  'this payment method is not available': 'This network is not available now / این شبکه فعلاً در دسترس نیست', 'too many open invoices for this e-mail': 'Too many open invoices; wait for them to expire / فاکتورهای باز زیاد است',
-  'too many invoices for this e-mail today': 'Too many invoices today / امروز فاکتور زیادی ساخته شده', 'busy, please try again in a few minutes': 'Busy, try again in a few minutes / مشغول است، چند دقیقه بعد تلاش کنید' }[e] || ('Error / خطا: ' + e); }
+function msg(e) {
+  return {
+    'invalid e-mail': 'Invalid e-mail / ایمیل نامعتبر',
+    'unknown product or plan': 'Unknown plan / پلن نامعتبر',
+    'invalid network': 'Invalid network / شبکه نامعتبر',
+    'this payment method is not available': 'This network is not available now / این شبکه فعلاً در دسترس نیست',
+    'too many open invoices for this e-mail': 'Too many open invoices; wait for them to expire / فاکتورهای باز زیاد است',
+    'too many invoices for this e-mail today': 'Too many invoices today / امروز فاکتور زیادی ساخته شده',
+    'busy, please try again in a few minutes': 'Busy, try again in a few minutes / مشغول است، چند دقیقه بعد تلاش کنید'
+  }[e] || ('Error / خطا: ' + e);
+}
 
 function fillProducts() {
   var sel = $('product'), want = qs('product') || 'mahquant', k;
@@ -121,8 +131,11 @@ function loadPlans() {
   call({ action: 'prices', product: p }, function (d) {
     if (!d || !d.ok) { $('err').textContent = 'Could not load prices / قیمت‌ها بارگذاری نشد'; return; }
     d.prices.forEach(function (x) {
-      var o = document.createElement('option'); o.value = x.plan; o.text = (PLAN_NAMES[x.plan] || x.plan) + ' — $' + x.usdt;
-      if (x.plan === qs('plan')) o.selected = true; sel.appendChild(o);
+      var o = document.createElement('option');
+      o.value = x.plan;
+      o.text = (PLAN_NAMES[x.plan] || x.plan) + ' — ' + (Number(x.usdt) === 0 ? 'Free / رایگان' : '$' + x.usdt);
+      if (x.plan === qs('plan')) o.selected = true;
+      sel.appendChild(o);
     });
   }, function () { $('err').textContent = 'Connection problem / مشکل اتصال'; });
 }
@@ -135,7 +148,18 @@ $('create').onclick = function () {
     if (!d || !d.ok) { $('err').textContent = msg(d && d.error); return; }
     order = d; expiresMs = Date.parse(d.expires);
     $('step1').hidden = true; $('step2').hidden = false;
-    $('amt').textContent = d.amount + ' USDT'; $('addr').textContent = d.address; $('netname').textContent = d.chain.toUpperCase(); $('inv').textContent = 'Invoice / فاکتور: ' + d.invoice;
+    /* آزمایش رایگان: فاکتور همان لحظه Paid است؛ مرحله‌ی پرداخت نمایش داده نمی‌شود */
+    if (d.status === 'Paid' || Number(d.amount) === 0) {
+      $('payblock').hidden = true;
+      $('inv').textContent = 'Invoice / فاکتور: ' + d.invoice + ' — Free trial / آزمایش رایگان';
+      show({ status: 'Paid' });
+      return;
+    }
+    $('payblock').hidden = false;
+    $('amt').textContent = d.amount + ' USDT';
+    $('addr').textContent = d.address;
+    $('netname').textContent = d.chain.toUpperCase();
+    $('inv').textContent = 'Invoice / فاکتور: ' + d.invoice;
     tick(); tickTimer = setInterval(tick, 1000); pollTimer = setInterval(poll, 15000);
   }, function () { b.disabled = false; $('err').textContent = 'Connection problem / مشکل اتصال'; });
 };
