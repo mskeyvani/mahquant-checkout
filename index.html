@@ -42,7 +42,11 @@
     </select>
     <div class="small">Check the network fee in your wallet before paying. / قبل از پرداخت کارمزد شبکه را در کیف پول خود بررسی کنید.</div>
     <label for="email">E-mail (your license is sent here) / ایمیل (لایسنس به این آدرس می‌آید)</label>
-    <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+    <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+    <div class="small" style="color:#B00020; margin-top:4px; font-weight:600">
+     ⚠️ دقت کنید: ایمیل را دقیق وارد کنید. در صورت اشتباه، دریافت لایسنس غیرممکن است و بازگشت وجه کریپتو وجود ندارد.
+    </div>
+    <div class="small" style="color:#B00020; margin-top:4px; font-weight:600">
     <input class="hp" type="text" id="website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     <label class="row" style="font-weight:400"><input type="checkbox" id="agree" style="flex:0 0 auto;width:auto">
       <span class="small">I accept the <a id="termsLink" href="https://www.mahquant.com/purchase/terms-of-service" target="_blank" rel="noopener">Terms</a> and the <a id="riskLink" href="https://www.mahquant.com/purchase/risk-disclosure" target="_blank" rel="noopener">Risk Disclosure</a>; this is not financial advice. / شرایط استفاده و هشدار ریسک را می‌پذیرم؛ این توصیه مالی نیست.</span></label>
