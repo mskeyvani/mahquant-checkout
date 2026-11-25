@@ -32,6 +32,9 @@
   .notice{background:#fff6e6;border:1px solid #f0d9a0;border-left:4px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;color:#6b4f12;margin-top:10px;line-height:1.6}
   .notice .fa{display:block;color:var(--muted);margin-top:2px}
   .err{background:#fff0f0;border:1px solid #f5c6cb;border-left:4px solid var(--danger);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--danger);margin-top:12px;line-height:1.6}
+  .qrbox{text-align:center;margin-top:14px}
+  .qrbox img{width:160px;height:160px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px;cursor:zoom-in;direction:ltr}
+  .qrbox .cap{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
   [hidden]{display:none!important}
   a{color:var(--navy);text-decoration:underline} a:hover{color:var(--gold)}
 </style>
@@ -78,6 +81,11 @@
       <label style="margin-top:14px">USDT on <b id="netname"></b> to this address<span class="fa">به این آدرس:</span></label>
       <div class="row"><div class="mono" id="addr"></div><button class="alt" id="copyAddr">Copy / کپی</button></div>
 
+      <div class="qrbox" id="qrBox" hidden>
+        <img id="qrImg" alt="QR code / بارکد">
+        <div class="cap">Scan to fill the address — never type it by hand.<span class="fa">برای پر شدن آدرس اسکن کنید؛ هرگز دستی تایپ نکنید.</span></div>
+      </div>
+
       <div class="warn" style="margin-top:14px">
         • Send only USDT on the selected network; anything else is lost.<span class="fa">فقط USDT روی همین شبکه؛ غیر از آن از دست می‌رود.</span><br>
         • The amount must be exact. If your exchange deducts a withdrawal fee, add it so the wallet receives exactly this amount.<span class="fa">مبلغ باید دقیق باشد؛ اگر صرافی کارمزد برداشت کم می‌کند، آن را اضافه کنید.</span><br>
@@ -94,24 +102,17 @@
 </div>
 
 <script>
-/* ========= SET THESE TWO LINES ========= */
 var CENTRAL_URL = 'https://script.google.com/macros/s/AKfycbynJnR9H8OrxL91GULltjK860MrstJ6ZRZQOsujU4WdD0dp2sQ4OBPNA8h8Bzpod-Yg/exec';
 var SUPPORT = 'mahquant.com';
 
-/* تشخیص هوشمند زبان */
 var _sig = (document.referrer || '');
 try { if (location.ancestorOrigins) { for (var _i = 0; _i < location.ancestorOrigins.length; _i++) _sig += ' ' + location.ancestorOrigins[_i]; } } catch (e) {}
 _sig = _sig.toLowerCase();
 var isPersian = _sig.indexOf('fa.mahquant.com') !== -1 || _sig.indexOf('sites.google.com') !== -1 || _sig.indexOf('-fa') !== -1 || _sig.indexOf('/fa/') !== -1;
 
-var TERMS_URL = isPersian
-  ? 'https://fa.mahquant.com/%D8%AE%D8%B1%DB%8C%D8%AF-%D9%85%D8%AD%D8%B5%D9%88%D9%84/%D9%82%D9%88%D8%A7%D9%86%DB%8C%D9%86-%D9%88-%D8%B4%D8%B1%D8%A7%DB%8C%D8%B7'
-  : 'https://www.mahquant.com/purchase/terms-of-service';
+var TERMS_URL = isPersian ? 'https://fa.mahquant.com/%D8%AE%D8%B1%DB%8C%D8%AF-%D9%85%D8%AD%D8%B5%D9%88%D9%84/%D9%82%D9%88%D8%A7%D9%86%DB%8C%D9%86-%D9%88-%D8%B4%D8%B1%D8%A7%DB%8C%D8%B7' : 'https://www.mahquant.com/purchase/terms-of-service';
+var RISK_URL = isPersian ? 'https://fa.mahquant.com/%D8%AE%D8%B1%DB%8C%D8%AF-%D9%85%D8%AD%D8%B5%D9%88%D9%84/%D8%A7%D9%81%D8%B4%D8%A7%DB%8C-%D8%B1%DB%8C%D8%B3%DA%A9' : 'https://www.mahquant.com/purchase/risk-disclosure';
 
-var RISK_URL = isPersian
-  ? 'https://fa.mahquant.com/%D8%AE%D8%B1%DB%8C%D8%AF-%D9%85%D8%AD%D8%B5%D9%88%D9%84/%D8%A7%D9%81%D8%B4%D8%A7%DB%8C-%D8%B1%DB%8C%D8%B3%DA%A9'
-  : 'https://www.mahquant.com/purchase/risk-disclosure';
-/* ======================================= */
 var PRODUCTS = { mahquant: 'MAHQuant BTC DCA', whalesonar: 'MAHQuant Whale Sonar' };
 var PLAN_NAMES = { trial: 'Free trial / آزمایش رایگان', monthly: 'Monthly / ماهانه', quarterly: '3 months / سه ماهه', half: '6 months / شش ماهه', yearly: 'Yearly / سالانه' };
 var order = null, pollTimer = null, tickTimer = null, expiresMs = 0;
@@ -130,16 +131,7 @@ function call(params, ok, fail) {
   document.head.appendChild(s);
 }
 function msg(e) {
-  return {
-    'invalid e-mail': 'Invalid e-mail / ایمیل نامعتبر',
-    'unknown product or plan': 'Unknown plan / پلن نامعتبر',
-    'invalid network': 'Invalid network / شبکه نامعتبر',
-    'this payment method is not available': 'This network is not available now / این شبکه فعلاً در دسترس نیست',
-    'too many open invoices for this e-mail': 'Too many open invoices; wait for them to expire / فاکتورهای باز زیاد است',
-    'too many invoices for this e-mail today': 'Too many invoices today / امروز فاکتور زیادی ساخته شده',
-    'trial already used': 'Trial already used for this e-mail / این ایمیل قبلاً از دوره آزمایشی استفاده کرده است',
-    'busy, please try again in a few minutes': 'Busy, try again in a few minutes / مشغول است، چند دقیقه بعد تلاش کنید'
-  }[e] || ('Error / خطا: ' + e);
+  return { 'invalid e-mail': 'Invalid e-mail / ایمیل نامعتبر', 'unknown product or plan': 'Unknown plan / پلن نامعتبر', 'invalid network': 'Invalid network / شبکه نامعتبر', 'this payment method is not available': 'This network is not available now / این شبکه فعلاً در دسترس نیست', 'too many open invoices for this e-mail': 'Too many open invoices; wait for them to expire / فاکتورهای باز زیاد است', 'too many invoices for this e-mail today': 'Too many invoices today / امروز فاکتور زیادی ساخته شده', 'trial already used': 'Trial already used for this e-mail / این ایمیل قبلاً از دوره آزمایشی استفاده کرده است', 'busy, please try again in a few minutes': 'Busy, try again in a few minutes / مشغول است، چند دقیقه بعد تلاش کنید' }[e] || ('Error / خطا: ' + e);
 }
 
 function fillProducts() {
@@ -152,11 +144,8 @@ function loadPlans() {
   call({ action: 'prices', product: p }, function (d) {
     if (!d || !d.ok) { $('err').hidden = false; $('err').textContent = 'Could not load prices / قیمت‌ها بارگذاری نشد'; return; }
     d.prices.forEach(function (x) {
-      var o = document.createElement('option');
-      o.value = x.plan;
-      o.text = (PLAN_NAMES[x.plan] || x.plan) + ' — ' + (Number(x.usdt) === 0 ? 'Free / رایگان' : '$' + x.usdt);
-      if (x.plan === qs('plan')) o.selected = true;
-      sel.appendChild(o);
+      var o = document.createElement('option'); o.value = x.plan; o.text = (PLAN_NAMES[x.plan] || x.plan) + ' — ' + (Number(x.usdt) === 0 ? 'Free / رایگان' : '$' + x.usdt);
+      if (x.plan === qs('plan')) o.selected = true; sel.appendChild(o);
     });
   }, function () { $('err').hidden = false; $('err').textContent = 'Connection problem / مشکل اتصال'; });
 }
@@ -170,16 +159,12 @@ $('create').onclick = function () {
     order = d; expiresMs = Date.parse(d.expires);
     $('step1').hidden = true; $('step2').hidden = false;
     if (d.status === 'Paid' || Number(d.amount) === 0) {
-      $('payblock').hidden = true;
-      $('inv').textContent = 'Invoice / فاکتور: ' + d.invoice + ' — Free trial / آزمایش رایگان';
-      show({ status: 'Paid' });
-      return;
+      $('payblock').hidden = true; $('inv').textContent = 'Invoice / فاکتور: ' + d.invoice + ' — Free trial / آزمایش رایگان'; show({ status: 'Paid' }); return;
     }
-    $('payblock').hidden = false;
-    $('amt').textContent = d.amount + ' USDT';
-    $('addr').textContent = d.address;
-    $('netname').textContent = d.chain.toUpperCase();
-    $('inv').textContent = 'Invoice / فاکتور: ' + d.invoice;
+    $('payblock').hidden = false; $('amt').textContent = d.amount + ' USDT'; $('addr').textContent = d.address; $('netname').textContent = d.chain.toUpperCase(); $('inv').textContent = 'Invoice / فاکتور: ' + d.invoice;
+    /* ★ بارکد متناسب با شبکه‌ی انتخاب‌شده ★ */
+    $('qrImg').src = (d.chain === 'trc20' ? 'qr-trc20.png' : 'qr-erc20.png');
+    $('qrBox').hidden = false;
     tick(); tickTimer = setInterval(tick, 1000); pollTimer = setInterval(poll, 15000);
   }, function () { b.disabled = false; $('err').hidden = false; $('err').textContent = 'Connection problem / مشکل اتصال'; });
 };
@@ -195,9 +180,9 @@ function poll() { if (order) call({ action: 'invoice_status', invoice: order.inv
 $('paid').onclick = function () { $('status').textContent = 'Checking… / در حال بررسی…'; call({ action: 'check_now', invoice: order.invoice }, show, function () { $('status').textContent = 'Connection problem / مشکل اتصال'; }); };
 function copy(id) { var t = $(id).textContent.replace(' USDT', ''); if (navigator.clipboard) navigator.clipboard.writeText(t); }
 $('copyAmt').onclick = function () { copy('amt'); }; $('copyAddr').onclick = function () { copy('addr'); };
+$('qrImg').onclick = function () { window.open(this.src); };
 $('support').textContent = SUPPORT;
-$('termsLink').href = TERMS_URL;
-$('riskLink').href = RISK_URL;
+$('termsLink').href = TERMS_URL; $('riskLink').href = RISK_URL;
 fillProducts();
 </script>
 </body>
